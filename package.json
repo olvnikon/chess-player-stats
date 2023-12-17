@@ -1,8 +1,9 @@
 {
   "name": "chess-player-stats",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
+  "homepage": "https://olvnikon.github.io/chess-player-stats",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
