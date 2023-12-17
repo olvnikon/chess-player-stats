@@ -4,7 +4,7 @@ import { GamesResponse } from './types';
 const userToTrack = 'DiomaNik';
 const WINS_PER_DAY = 2;
 const startYear = 2023;
-const startMonth = 11; // December (0 indexed)
+const startMonth = 11;
 const fromDay = 16;
 
 function App() {
@@ -15,23 +15,30 @@ function App() {
   useEffect(() => {
     const startDate = new Date(startYear, startMonth, fromDay);
     const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
     let wins = 0;
+    let _totalDays = 0;
     const initialStats: Record<string, number> = {};
 
-    // Initialize stats with all days in the range set to 0 wins
     for (
       let d = new Date(startDate);
       d <= currentDate;
       d.setDate(d.getDate() + 1)
     ) {
-      const dateKey = new Intl.DateTimeFormat('pl-PL').format(d);
+      const isCurrentMonth = d.getMonth() === currentMonth;
+      const dateKey = new Intl.DateTimeFormat(
+        'pl-PL',
+        !isCurrentMonth ? { month: 'long' } : undefined
+      ).format(d);
       initialStats[dateKey] = 0;
+      _totalDays++;
     }
 
-    // Function to fetch and process games for a specific month
     const fetchAndProcessGames = async (year: number, month: number) => {
       const response = await fetch(
-        `https://api.chess.com/pub/player/diomanik/games/${year}/${month + 1}`
+        `https://api.chess.com/pub/player/diomanik/games/${year}/${(month + 1)
+          .toString()
+          .padStart(2, '0')}`
       );
       const data: GamesResponse = await response.json();
 
@@ -43,17 +50,17 @@ function App() {
           new Date(end_time * 1000) >= startDate
       );
 
-      // Count wins for each day
+      const isCurrentMonth = month === currentMonth;
       userGames.forEach((game) => {
-        const dateKey = new Intl.DateTimeFormat('pl-PL').format(
-          new Date(game.end_time * 1000)
-        );
+        const dateKey = new Intl.DateTimeFormat(
+          'pl-PL',
+          !isCurrentMonth ? { month: 'long' } : undefined
+        ).format(new Date(game.end_time * 1000));
         initialStats[dateKey]++;
         wins++;
       });
     };
 
-    // Loop through each month in the range and fetch games
     const processMonths = async () => {
       for (
         let year = startDate.getFullYear();
@@ -69,10 +76,9 @@ function App() {
         }
       }
 
-      // Update state after processing all months
       setGameStats(initialStats);
       setTotalWins(wins);
-      setTotalDays(Object.keys(initialStats).length);
+      setTotalDays(_totalDays);
     };
 
     processMonths();
@@ -94,18 +100,28 @@ function App() {
       )}
       {Object.keys(gamesStats)
         .toReversed()
-        .map((day) => (
-          <div key={day}>
-            {day}:{' '}
-            <strong
-              style={{
-                color: gamesStats[day] >= WINS_PER_DAY ? 'green' : 'red',
-              }}
-            >
-              {gamesStats[day]}
-            </strong>
-          </div>
-        ))}
+        .map((key) => {
+          const isDate = key.match(/^\d+/);
+          const dayColor = !isDate
+            ? 'black'
+            : gamesStats[key] >= WINS_PER_DAY
+            ? 'green'
+            : gamesStats[key] === 0
+            ? 'red'
+            : 'orange';
+          return (
+            <div key={key}>
+              {key}:{' '}
+              <strong
+                style={{
+                  color: dayColor,
+                }}
+              >
+                {gamesStats[key]}
+              </strong>
+            </div>
+          );
+        })}
     </div>
   );
 }
